@@ -1,0 +1,84 @@
+@startuml
+!theme vibrant
+
+' Пакет Kubernetes
+package "Облачная платформа Kubernetes" as k8s {
+    [Docker] as docker << (C, #FFAAAA) >>
+    [Контейнеры] as containers << (C, #FFAAAA) >>
+}
+
+' Обслуживание системы
+package "Обслуживание системы" as maintenance {
+    actor "Системный администратор" as sys_admin
+    package "Облачные сервисы" as cloud {
+        [Мониторинг (Zabbix)] as monitoring_service << (C, #FFAAAA) >>
+        [Система бэкапов] as backup_service << (C, #FFAAAA) >>
+    }
+}
+
+' Внешние сервисы
+package "Внешние сервисы" as external_services {
+    package "Уведомления" as notifications {
+        [Почтовый шлюз] as email_service << (C, #FFAAAA) >>
+    }
+    package "Видеосвязь" as video {
+        [Сервис видеосвязи] as video_service << (C, #FFAAAA) >>
+    }
+    package "Платежная система" as payment {
+        [Платежная система] as payment_service << (C, #FFAAAA) >>
+    }
+}
+
+' Разработка и CI/CD Pipeline
+package "Разработка и CI/CD" as development {
+    actor "Разработчик" as developer
+    [Контроль версий (GitLab)] as vcs << (C, #FFAAAA) >>
+    [CI/CD (GitLab main)] as cicd_prod << (C, #FFAAAA) >>
+    [CI/CD (GitLab dev)] as cicd_dev << (C, #FFAAAA) >>
+
+    package "CI/CD Pipeline (PROD)" as pipeline_prod {
+        [Build Stage] as build_stage_prod << (C, #FFAAAA) >>
+        [Testing Stage] as test_stage_prod << (C, #FFAAAA) >>
+    }
+
+    package "CI/CD Pipeline (DEV)" as pipeline_dev {
+        [Build Stage Test] as build_stage_dev << (C, #FFAAAA) >>
+        [Testing Stage Test] as test_stage_dev << (C, #FFAAAA) >>
+    }
+
+    [Реестр контейнеров (GitLab)] as container_registry << (C, #FFAAAA) >>
+}
+
+' Связи между компонентами
+sys_admin --> monitoring_service : "Мониторинг системы"
+sys_admin --> backup_service : "Создание и восстановление данных"
+monitoring_service --> email_service : "Уведомления о сбоях"
+monitoring_service --> containers : "Проверка состояния контейнеров"
+backup_service --> containers : "Бэкапы и восстановление"
+
+developer --> vcs : "Push коммитов"
+vcs --> cicd_prod : "Запуск CI/CD (main)"
+vcs --> cicd_dev : "Запуск CI/CD (dev)"
+cicd_prod --> build_stage_prod : "Сборка"
+cicd_dev --> build_stage_dev : "Сборка"
+
+build_stage_prod --> container_registry : "PUSH Docker-образов"
+build_stage_dev --> container_registry : "PUSH Docker-образов"
+test_stage_prod --> container_registry : "PULL Docker-образов"
+test_stage_dev --> container_registry : "PULL Docker-образов"
+
+build_stage_prod --> test_stage_prod : "Тестирование успешно"
+build_stage_dev --> test_stage_dev : "Тестирование успешно"
+
+test_stage_prod --> docker : "PULL обновлений (main)"
+test_stage_dev --> docker : "PULL обновлений (dev)"
+docker --> containers : "Обновление контейнеров"
+
+monitoring_service --> containers : "Проверка состояния контейнеров"
+backup_service --> containers : "Резервное копирование данных"
+
+' Внешний сервис видеосвязи
+containers --> video_service : "Видеозвонки"
+containers --> payment_service : "Платежи"
+
+@enduml

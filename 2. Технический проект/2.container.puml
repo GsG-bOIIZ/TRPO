@@ -1,0 +1,75 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Диаграмма контейнеров (C4 Level 2: Container)
+title "Диаграмма контейнеров системы Онлайн-Консультаций"
+
+Person(client, "Клиент")
+Person(expert, "Эксперт")
+Person(admin, "Администратор")
+
+System_Ext(paymentGateway, "Платежная система", "Stripe API", "Обработка платежей")
+System_Ext(videoService, "Сервис видеосвязи", "WebRTC API", "Обеспечение видео и аудиосвязи")
+System_Ext(notificationServiceExt, "Почта SMTP", "SMTP", "Обеспечение доставки уведомлений")
+
+System_Boundary(system, "Система Онлайн-Консультаций") {
+  Container(webApp, "Веб-приложение", "React", "Интерфейс для клиентов и экспертов")
+  Container(mobileApp, "Мобильное приложение", "React Native", "Интерфейс для клиентов и экспертов")
+  Container(apiGateway, "Шлюз для управления запросами от клиентов к серверам", "NestJS", "Маршрутизация запросов")
+  System_Boundary(services, "Сервисы") {
+    Container(authService, "Сервис аутентификации", "NestJS", "Управление доступом")
+    Container(scheduleService, "Сервис расписания", "NestJS", "Управление записями на консультации")
+    Container(videoServiceInternal, "Сервис управления видеосвязью", "NestJS", "Организация видеосвязи, управление сессиями")
+    Container(paymentServiceInternal, "Сервис управления платежами", "NestJS", "Обработка и управление платежами")
+    Container(chatService, "Сервис чатов", "NestJS", "Хранение сообщений и файлов переписки")
+    Container(transcriptionService, "Сервис транскрипции", "NestJS", "Создание текстовых транскрипций и таймкодов")
+    Container(notificationService, "Сервис уведомлений", "NestJS", "Отправка email уведомлений")
+    Container(userService, "Сервис пользователей", "NestJS", "Управление профилями, ролями и данными пользователей")
+  }
+  System_Boundary(databases, "Базы данных") {
+    Container(db, "База данных", "PostgreSQL", "Хранение данных пользователей, расписания и чатов")
+    Container(dbRedis, "База данных", "Redis", "Хранение уведомлений и аутентификации")
+    Container(fileStorage, "Хранилище файлов", "S3-compatible", "Хранение файлов переписки и консультаций")
+  }
+    Container(eventBus, "Событийная шина", "RabbitMQ", "Обработка событий между сервисами")
+}
+
+Rel_D(client, webApp, "Запросы через интерфейс")
+Rel_D(expert, webApp, "Управление консультациями")
+Rel_D(admin, webApp, "Управление пользователями и системой")
+
+Rel_D(client, mobileApp, "Запросы через интерфейс")
+Rel_D(expert, mobileApp, "Управление консультациями")
+
+Rel_D(webApp, apiGateway, "REST API запросы", "REST API")
+Rel_D(mobileApp, apiGateway, "REST API запросы", "REST API")
+Rel_D(apiGateway, authService, "Аутентификация и авторизация", "REST API")
+Rel_D(apiGateway, scheduleService, "Управление расписанием", "REST API")
+Rel_D(apiGateway, videoServiceInternal, "Управление сессиями видеосвязи", "REST API")
+Rel_D(apiGateway, paymentServiceInternal, "Управление платежами", "REST API")
+Rel_D(apiGateway, chatService, "Управление сообщениями и файлами", "REST API")
+Rel_D(apiGateway, transcriptionService, "Создание транскрипций", "REST API")
+Rel_D(apiGateway, notificationService, "Отправка уведомлений", "REST API")
+Rel_D(apiGateway, userService, "Управление данными пользователей", "REST API")
+
+' Rel_D(userService, db, "Хранение данных пользователей", "SQL")
+' Rel_D(scheduleService, db, "Хранение расписания и записей", "SQL")
+' Rel_D(paymentServiceInternal, db, "Хранение платежей", "SQL")
+
+' Rel_D(notificationService, dbRedis, "Хранение данных об уведомлениях", "SQL")
+' Rel_D(authService, dbRedis, "Хранение данных об уведомлениях", "SQL")
+
+' Rel_D(chatService, fileStorage, "Хранение файлов переписки", "REST API")
+' Rel_D(transcriptionService, fileStorage, "Хранение файлов транскрипций", "REST API")
+' Rel_D(videoServiceInternal, fileStorage, "Видеосвязь через внешний API", "REST API")
+
+Rel(services, databases, "Чтение/Запись данных", "SQL")
+
+Rel_D(videoServiceInternal, videoService, "Видеосвязь через внешний API", "REST API")
+Rel_D(paymentServiceInternal, paymentGateway, "Обработка платежей", "REST API")
+Rel_D(notificationService, notificationServiceExt, "Обработка уведомлений", "REST API")
+
+Rel_D(services, eventBus, "Подписка/Публикация на события")
+' Rel_U(eventBus, services, "Публикация событий")
+
+@enduml

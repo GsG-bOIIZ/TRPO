@@ -1,0 +1,39 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title "C4 Level 3: Component Diagram - Сервис расписания (NestJS)"
+
+Component(apiGateway, "Шлюз для управления запросами от клиентов к серверам", "NestJS", "Маршрутизация запросов")
+
+Container_Boundary(scheduleService, "Сервис расписания") {
+
+    Component(controller, "Schedule Controller", "NestJS Controller", "Обрабатывает входящие HTTP-запросы")
+    Component(serviceLayer, "Schedule Service", "NestJS Service", "Бизнес-логика управления расписанием")
+    Component(repository, "Schedule Repository", "TypeORM Repository", "Доступ к базе данных")
+    Component(eventPublisher, "Event Publisher", "RabbitMQ Publisher", "Публикация событий о расписании")
+    Component(notificationClient, "Notification Client", "SMTP Client", "Отправка email-уведомлений через SMTP")
+    Component(validationPipe, "Validation Pipe", "NestJS Pipe", "Проверка корректности данных")
+}
+
+' Внешние компоненты
+Component(scheduleDB, "База данных", "PostgreSQL", "Хранит расписание и записи")
+Component(rabbitMQ, "RabbitMQ", "Message Broker", "Передача событий")
+Component(rabbitMQ2, "RabbitMQ", "Message Broker", "Передача событий")
+System_Ext(notificationService, "SMTP Server", "SMTP", "Отправка email-уведомлений")
+
+' Связи между компонентами
+Rel(apiGateway, scheduleService, "Вызов сервиса", "HTTP/JSON")
+
+Rel(controller, serviceLayer, "Вызов сервиса", "HTTP/JSON")
+Rel(serviceLayer, repository, "Запрос данных", "TypeORM")
+Rel(serviceLayer, validationPipe, "Валидация данных", "Method Call")
+Rel(serviceLayer, eventPublisher, "Публикация событий", "AMQP")
+Rel(serviceLayer, notificationClient, "Отправка email-уведомлений", "SMTP")
+Rel(repository, scheduleDB, "Чтение/Запись", "SQL")
+
+' Внешние связи
+Rel(eventPublisher, rabbitMQ, "Публикует события")
+Rel(rabbitMQ2, scheduleService, "Читает события")
+Rel(notificationClient, notificationService, "Отправляет email", "SMTP")
+
+@enduml

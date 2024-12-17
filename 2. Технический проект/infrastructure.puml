@@ -1,0 +1,93 @@
+@startuml
+!define C4P https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master
+!includeurl C4P/C4_Container.puml
+
+title C4 Infrastructure Diagram - Система записи на консультации
+
+
+
+package "Облачная платформа" as cloud {
+    Container(nginx, "Nginx", "Nginx", "Обратный прокси и балансировщик нагрузки")
+
+    package "Kubernetes Cluster" as k8s_cluster {
+        package "Consultation Pod" as consultation_pod {
+            Container(consultation_service, "Consultation Service", "NestJS, TypeORM", "Сервис записи и управления консультациями")
+        }
+
+        package "User Management Pod" as user_management_pod {
+            Container(user_service, "User Management Service", "NestJS, TypeORM", "Сервис управления пользователями и их профилями")
+        }
+
+        package "Payment Integration Pod" as payment_integration_pod {
+            Container(payment_service, "Payment Integration Service", "NestJS", "Сервис интеграции с платежными системами")
+        }
+
+        package "Notification Pod" as notification_pod {
+            Container(notification_service, "Notification Service", "NestJS, Nodemailer", "Сервис отправки email-уведомлений через SMTP")
+        }
+
+        package "Video Management Pod" as video_management_pod {
+            Container(video_service_internal, "Video Management Service", "NestJS", "Сервис управления видеосвязью и сессиями")
+        }
+
+        package "Chat Pod" as chat_pod {
+            Container(chatService, "Сервис чатов", "NestJS", "Хранение сообщений и файлов переписки")
+        }
+
+        package "Transcription Pod" as transcription_pod {
+            Container(transcriptionService, "Сервис транскрипции", "NestJS", "Создание текстовых транскрипций и таймкодов")
+        }
+
+        package "Authinfication Pod" as auth_pod {
+            Container(authService, "Сервис аутентификации", "NestJS", "Управление доступом")
+        }
+
+    }
+
+    Container(RabbitMQ, "Message Broker", "RabbitMQ", "Асинхронная обработка событий между микросервисами")
+}
+
+package "Database Server" as database {
+    package "Country 1" as region1 {
+        Container(database_r1_master, "PostgreSQL Master", "PostgreSQL", "Основная база данных для региона 1")
+        Container(database_r1_replica, "PostgreSQL Replica", "PostgreSQL", "Реплика базы данных для региона 1")
+    }
+
+    package "Country n" as region2 {
+        Container(database_r2_master, "PostgreSQL Master", "PostgreSQL", "Основная база данных для региона 2")
+        Container(database_r2_replica, "PostgreSQL Replica", "PostgreSQL", "Реплика базы данных для региона 2")
+    }
+
+    Container(dbRedis, "Redis", "Redis", "Кэширование данных")
+Container(fileStorage, "File Storage", "S3-compatible", "Хранение файлов переписки и транскрипций")
+}
+
+
+System_Ext(payment_system, "Платежная система", "Stripe API", "Обработка платежей")
+System_Ext(video_service, "Сервис видеосвязи", "WebRTC API", "Обеспечение видео и аудиосвязи")
+System_Ext(notificationServiceExt, "SMTP Server", "SMTP", "Обеспечение доставки email-уведомлений")
+
+' Соединения между компонентами
+Rel(nginx, k8s_cluster, "Проксирование запросов", "HTTP")
+' Rel(consultation_service, database_r1_master, "Чтение/Запись расписания", "SQL")
+' Rel(consultation_service, RabbitMQ, "Публикация событий", "AMQP")
+' Rel(consultation_service, notification_service, "Запрос отправки уведомлений", "REST")
+
+' Rel(user_service, database_r1_master, "Чтение/Запись пользователей", "SQL")
+' Rel(user_service, RabbitMQ, "Публикация событий", "AMQP")
+
+Rel_D(payment_service, payment_system, "Интеграция с платежной системой", "REST API")
+' Rel(payment_service, RabbitMQ, "Публикация статусов платежей", "AMQP")
+
+Rel_D(notification_service, notificationServiceExt, "Отправка email-уведомлений", "SMTP")
+' Rel(notification_service, dbRedis, "Кэширование данных об уведомлениях", "Cache")
+
+Rel_D(video_service_internal, video_service, "Интеграция для видеосвязи", "WebRTC API")
+' Rel(video_service_internal, fileStorage, "Хранение данных о сессиях видеосвязи", "S3")
+
+Rel(database_r1_master, database_r1_replica, "Репликация", "Streaming")
+Rel(database_r2_master, database_r2_replica, "Репликация", "Streaming")
+
+Rel_U(k8s_cluster, database, "Чтение/Запись", "SQL")
+Rel(k8s_cluster, RabbitMQ, "Публикация событий", "RabbitMQ")
+@enduml

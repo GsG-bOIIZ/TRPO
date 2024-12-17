@@ -1,0 +1,30 @@
+@startuml
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/common.puml
+
+' Контекстная диаграмма (C4 Level 1: Context)
+title "Контекстная диаграмма системы Онлайн-Консультаций"
+
+Person(client, "Клиент", "Получает консультации, оставляет отзывы")
+Person(expert, "Эксперт", "Предоставляет консультации, управляет своим расписанием")
+Person(admin, "Администратор", "Модерирует контент, управляет пользователями и платежами")
+
+System(platform, "Система Онлайн-Консультаций")
+
+System_Ext(paymentGateway, "Платежная система", "Обработка платежей")
+System_Ext(videoService, "Сервис видео и аудио связи", "Обеспечивает связь между клиентом и экспертом")
+System_Ext(notificationServiceExt, "Почта SMTP", "Обеспечивает доставку уведомлений")
+
+client --> platform
+expert --> platform
+admin --> platform
+
+platform --> paymentGateway
+platform --> videoService
+platform --> notificationServiceExt
+@enduml
+
+
+' внешний сервис для уведомлений
